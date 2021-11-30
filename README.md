@@ -3,4 +3,4 @@
 **NOT FINISHED YET**
 
 ## Credits
-* [Christian Deacon](https://github.com/gamemann).
+* [Christian Deacon](https://github.com/gamemann)
