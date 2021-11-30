@@ -1,6 +1,9 @@
-[submodule "tests"]
-	path = tests
-	url = https://github.com/Packet-Batch/PB-Tests.git
-[submodule "common"]
-	path = common
+[submodule "modules/common"]
+	path = modules/common
 	url = https://github.com/Packet-Batch/PB-Common.git
+[submodule "modules/tests"]
+	path = modules/tests
+	url = https://github.com/Packet-Batch/PB-Tests.git
+[submodule "modules/dpdk-common"]
+	path = modules/dpdk-common
+	url = https://github.com/gamemann/The-DPDK-Common.git
