@@ -1,0 +1,6 @@
+[submodule "tests"]
+	path = tests
+	url = https://github.com/Packet-Batch/PB-Tests.git
+[submodule "common"]
+	path = common
+	url = https://github.com/Packet-Batch/PB-Common.git
