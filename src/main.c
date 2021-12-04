@@ -173,7 +173,7 @@ int main(int argc, char **argv)
         fprintf(stdout, "\n\n*DPDK Configuration *\n\n");
 
         fprintf(stdout, "Port mask => 0x%x.\n", enabled_port_mask);
-        fprintf(stdout, "Queues PL => %d (%d).\n", rx_queue_pl, cmd_dpdk.queues);
+        fprintf(stdout, "TX queues per port => %d (%d).\n", rx_queue_pp, cmd_dpdk.queues);
         fprintf(stdout, "Promisc => %d.", cmd_dpdk.promisc);
 
         fprintf(stdout, "\nStarting the DPDK application...\n\n");
@@ -184,15 +184,8 @@ int main(int argc, char **argv)
 
     dpdkc_check_ret(&ret);
 
-    nb_ports = (unsigned short)ret.data;
-
     // Make sure port mask is valid.
     ret = dpdkc_ports_are_valid();
-
-    dpdkc_check_ret(&ret);
-
-    // Initialize and set the configuration for each l-core.
-    ret = dpdkc_ports_queues_mapping();
 
     dpdkc_check_ret(&ret);
 
@@ -207,6 +200,11 @@ int main(int argc, char **argv)
     // Check for error and fail with it if there is.
     dpdkc_check_ret(&ret);
 
+    // Initialize the port and l-core mappings.
+    ret = dpdkc_ports_queues_mapping();
+
+    dpdkc_check_ret(&ret);
+
     // Check for available ports.
     ret = dpdkc_ports_available();
 
@@ -218,7 +216,7 @@ int main(int argc, char **argv)
     // Assign destination ports.
     RTE_ETH_FOREACH_DEV(port_id)
     {
-        dst_ports[port_id] = port_id;
+        ports[port_id].tx_port = port_id;
     }
 
     // Loop through each sequence found.

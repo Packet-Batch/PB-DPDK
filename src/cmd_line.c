@@ -35,8 +35,6 @@ void parse_cmd_line_dpdk(struct cmd_line_dpdk *cmd_dpdk, int argc, char **argv)
             case 1:
                 ret = dpdkc_parse_arg_port_mask(optarg);
 
-                enabled_port_mask = (unsigned int)ret.data;
-
                 if (enabled_port_mask == 0)
                 {
                     rte_exit(EXIT_FAILURE, "Invalid portmask specified with -p or --portmask.\n");
@@ -45,16 +43,14 @@ void parse_cmd_line_dpdk(struct cmd_line_dpdk *cmd_dpdk, int argc, char **argv)
                 break;
 
             case 2:
-                ret = dpdkc_parse_arg_queues(optarg);
-
-                rx_queue_pl = (unsigned short)ret.data;
+                ret = dpdkc_parse_arg_queues(optarg, 0, 1);
                 
-                if (rx_queue_pl == 0)
+                if (rx_queue_pp == 0)
                 {
                     rte_exit(EXIT_FAILURE, "Invalid queue number argument with -q or --queues.\n");
                 }
 
-                cmd_dpdk->queues = rx_queue_pl;
+                cmd_dpdk->queues = rx_queue_pp;
 
                 break;
 

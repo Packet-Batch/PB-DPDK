@@ -128,12 +128,11 @@ static int thread_hdl(void *temp)
     unsigned i;
     unsigned j;
 
-    // the port ID and number of packets from RX queue.
+    // The port ID.
     unsigned port_id;
-    unsigned nb_rx;
 
-    // The specific RX queue config for the l-core.
-    struct lcore_queue_conf *qconf = &lcore_queue_conf[lcore_id];
+    // The specific TX port config for the l-core.
+    struct lcore_port_conf *qconf = &lcore_port_conf[lcore_id];
 
     // Pointer to TX buffer.
     struct rte_eth_dev_tx_buffer *buffer;
@@ -146,8 +145,8 @@ static int thread_hdl(void *temp)
     // For TX draining.
     const __u64 draintsc = (rte_get_tsc_hz() + US_PER_S - 1) / US_PER_S * BURST_TX_DRAIN_US;
 
-    // If we have no RX ports under this l-core, return because the l-core has nothing else to do.
-    if (qconf->num_rx_ports == 0)
+    // If we have no TX ports under this l-core, return because the l-core has nothing else to do.
+    if (qconf->num_tx_ports == 0)
     {
         RTE_LOG(INFO, USER1, "lcore %u has nothing to do.\n", lcore_id);
 
@@ -155,7 +154,7 @@ static int thread_hdl(void *temp)
     }
 
     // Log message.
-    RTE_LOG(INFO, USER1, "Looping lcore %u with %u TX port(s) and %d TX queue(s) per port.\n", lcore_id, qconf->num_rx_ports, ti->cmd_dpdk.queues);
+    RTE_LOG(INFO, USER1, "Looping lcore %u with %u TX port(s) and %d TX queue(s) per port.\n", lcore_id, qconf->num_tx_ports, tx_queue_pp);
 
     // Let's first start off by checking if the source MAC address is set within the config.
     if (ti->seq.eth.src_mac != NULL)
@@ -253,10 +252,10 @@ static int thread_hdl(void *temp)
     if (src_mac.addr_bytes[0] == 0 && src_mac.addr_bytes[1] == 0 && src_mac.addr_bytes[2] == 0 && src_mac.addr_bytes[3] == 0 && src_mac.addr_bytes[4] == 0 && src_mac.addr_bytes[5] == 0)
     {
         // Copy source MAC address of first port if we have only one per l-core.
-        if (qconf->num_rx_ports == 1)
+        if (qconf->num_tx_ports == 1)
         {
-            port_id = qconf->rx_port_list[0];
-            rte_ether_addr_copy(&ports_eth[port_id], &src_mac);
+            port_id = qconf->tx_port_list[0];
+            rte_ether_addr_copy(&ports[port_id].mac, &src_mac);
 
             if (src_mac.addr_bytes[0] == 0 && src_mac.addr_bytes[1] == 0 && src_mac.addr_bytes[2] == 0 && src_mac.addr_bytes[3] == 0 && src_mac.addr_bytes[4] == 0 && src_mac.addr_bytes[5] == 0)
             {
@@ -532,10 +531,10 @@ static int thread_hdl(void *temp)
     // If we only have one port, assign port and buffer now.
     unsigned dst_port;
     
-    if (qconf->num_rx_ports == 1)
+    if (qconf->num_tx_ports == 1)
     {
-        dst_port = dst_ports[qconf->rx_port_list[0]];
-        buffer = tx_buffer[dst_port];
+        dst_port = ports[qconf->tx_port_list[0]].tx_port;
+        buffer = ports[dst_port].tx_buffer;
     }
 
     __u16 pckt_len;
@@ -562,17 +561,17 @@ static int thread_hdl(void *temp)
         if (unlikely(difftsc > draintsc))
         {
             // Loop through all TX ports.
-            for (i = 0; i < qconf->num_rx_ports; i++)
+            for (i = 0; i < qconf->num_tx_ports; i++)
             {
                 // If we have more than one TX port, reassign port ID (dst_port) and buffer.
-                if (qconf->num_rx_ports > 1)
+                if (qconf->num_tx_ports > 1)
                 {
-                    dst_port = dst_ports[qconf->rx_port_list[i]];
-                    buffer = tx_buffer[dst_port];
+                    dst_port = ports[qconf->tx_port_list[i]].tx_port;
+                    buffer = ports[dst_port].tx_buffer;
                 }
 
                 // Loop through all TX queues.
-                for (j = 0; j < ti->cmd_dpdk.queues; j++)
+                for (j = 0; j < tx_queue_pp; j++)
                 {
                     rte_eth_tx_buffer_flush(dst_port, j, buffer);
                 }
@@ -759,19 +758,19 @@ static int thread_hdl(void *temp)
         }
 
         // Loop through each TX port on this l-core.
-        for (i = 0; i < qconf->num_rx_ports; i++)
+        for (i = 0; i < qconf->num_tx_ports; i++)
         {
             // If we have more than one port on this l-core, we need to copy the source MAC address and retrieve the port ID.
-            if (qconf->num_rx_ports > 1)
+            if (qconf->num_tx_ports > 1)
             {
                 // Retrieve the port ID.
-                dst_port = qconf->rx_port_list[i];
+                dst_port = qconf->tx_port_list[i];
 
                 // Retrieve buffer.
-                buffer = tx_buffer[dst_port];
+                buffer = ports[dst_port].tx_buffer;
 
                 // Copy source MAC address of specific port.
-                rte_ether_addr_copy(&ports_eth[dst_port], &eth->src_addr);
+                rte_ether_addr_copy(&ports[dst_port].mac, &eth->src_addr);
 
                 // Check the source MAC address.
                 if (eth->src_addr.addr_bytes[0] == 0 && eth->src_addr.addr_bytes[1] == 0 && eth->src_addr.addr_bytes[2] == 0 && eth->src_addr.addr_bytes[3] == 0 && eth->src_addr.addr_bytes[4] == 0 && eth->src_addr.addr_bytes[5] == 0)
@@ -781,7 +780,7 @@ static int thread_hdl(void *temp)
             }
 
             // Loop through the TX queues and buffer the packet.
-            for (j = 0; j < ti->cmd_dpdk.queues; j++)
+            for (j = 0; j < tx_queue_pp; j++)
             {
                 rte_eth_tx_buffer(dst_port, j, buffer, pckt);
             }
