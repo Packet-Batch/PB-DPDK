@@ -540,7 +540,7 @@ static int thread_hdl(void *temp)
     __u16 pckt_len;
 
     // If our packet is completely static (no layer 3/4 checksum calculations outside of while loop), set opacket length.
-    if (!need_csum && !need_l4_csum)
+    if (!need_len_recal)
     {
         pckt_len = ntohs(iph->total_length) + sizeof(struct rte_ether_hdr);
 
