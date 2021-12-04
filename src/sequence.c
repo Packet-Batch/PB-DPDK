@@ -382,7 +382,7 @@ static int thread_hdl(void *temp)
         case IPPROTO_TCP:
             tcph = (struct rte_tcp_hdr *)((char *)eth + sizeof(struct rte_ether_hdr) + (iph->ihl * 4));
 
-            tcph->data_off = 5;
+            tcph->data_off = (sizeof(struct rte_tcp_hdr) << 2) & 0xF0;
             l4_len = (tcph->data_off * 4);
 
             // Check for static source/destination ports.
