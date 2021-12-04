@@ -14,7 +14,7 @@ COMMON_SRC_DIR := $(COMMON_DIR)/src
 
 # The DPDK Common source and objects directories.
 DPDK_COMMON_SRC_DIR := $(DPDK_COMMON_DIR)/src
-DPDK_COMMON_OBJS_DIR := $(DPDK_COMMON_DIR)/objs
+DPDK_COMMON_OBJS_DIR := $(DPDK_COMMON_DIR)/objs/static
 
 # Common objects.
 COMMON_OBJS := $(COMMON_BUILD_DIR)/utils.o $(COMMON_BUILD_DIR)/cmd_line.o $(COMMON_BUILD_DIR)/config.o
