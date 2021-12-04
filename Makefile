@@ -36,8 +36,8 @@ MAIN_SRC := main.c
 MAIN_OUT := pcktbatch
 
 # Global and main flags.
-OBJ_FLAGS := -g -O2
-MAIN_FLAGS := -g -pthread -lyaml
+OBJ_FLAGS := -O2
+MAIN_FLAGS := -pthread -lyaml
 
 PKGCONF ?= pkg-config
 
