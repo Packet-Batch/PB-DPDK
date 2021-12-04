@@ -69,8 +69,8 @@ int main(int argc, char **argv)
             "-v --verbose => Provide verbose output.\n" \
             "-h --help => Print out help menu and exit program.\n" \
             "--portmask => The port mask to use with the DPDK application.\n" \
-            "--queues => The amount of TX queues to setup per l-core (default and recommended is 1).\n" \
-            "--promisc => Whether to enable promiscuous on all enabled ports.\n");
+            "--queues => The amount of TX queues to setup per port (default and recommended is 1).\n" \
+            "--promisc => Whether to enable promiscuous mode on all enabled ports.\n");
 
         return EXIT_SUCCESS;
     }
