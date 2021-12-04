@@ -11,6 +11,7 @@ static const struct option long_opts[] =
     {"portmask", required_argument, NULL, 1},
     {"queues", required_argument, NULL, 2},
     {"promisc", no_argument, NULL, 3},
+    {"burstsize", required_argument, NULL, 4},
     {NULL, 0, NULL, 0}
 };
 
@@ -57,6 +58,18 @@ void parse_cmd_line_dpdk(struct cmd_line_dpdk *cmd_dpdk, int argc, char **argv)
             case 3:
                 cmd_dpdk->promisc = 1;
 
+                break;
+
+            case 4:
+                packet_burst_size = atoi(optarg);
+
+                if (packet_burst_size < 1)
+                {
+                    fprintf(stderr, "WARNING - Packet burst size from command line was found at < 1. Resetting to default.\n");
+
+                    packet_burst_size = MAX_PCKT_BURST_DEFAULT;
+                }
+                
                 break;
         }
     }

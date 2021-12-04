@@ -70,7 +70,8 @@ int main(int argc, char **argv)
             "-h --help => Print out help menu and exit program.\n" \
             "--portmask => The port mask to use with the DPDK application.\n" \
             "--queues => The amount of TX queues to setup per port (default and recommended is 1).\n" \
-            "--promisc => Whether to enable promiscuous mode on all enabled ports.\n");
+            "--promisc => Whether to enable promiscuous mode on all enabled ports.\n" \
+            "--burstsize => The max TX buffer burst size (default 32).\n");
 
         return EXIT_SUCCESS;
     }
@@ -175,6 +176,7 @@ int main(int argc, char **argv)
         fprintf(stdout, "Port mask => 0x%x.\n", enabled_port_mask);
         fprintf(stdout, "TX queues per port => %d (%d).\n", rx_queue_pp, cmd_dpdk.queues);
         fprintf(stdout, "Promisc => %d.", cmd_dpdk.promisc);
+        fprintf(stdout, "Packet Burst Size => %u.\n", packet_burst_size);
 
         fprintf(stdout, "\nStarting the DPDK application...\n\n");
     }
