@@ -383,7 +383,7 @@ static int thread_hdl(void *temp)
             tcph = (struct rte_tcp_hdr *)((char *)eth + sizeof(struct rte_ether_hdr) + (iph->ihl * 4));
 
             tcph->data_off = (sizeof(struct rte_tcp_hdr) << 2) & 0xF0;
-            l4_len = (tcph->data_off * 4);
+            l4_len = sizeof(struct rte_tcp_hdr);
 
             // Check for static source/destination ports.
             if (ti->seq.tcp.src_port > 0)
