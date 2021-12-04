@@ -45,7 +45,7 @@ sudo ninja install
 sudo ldconfig
 ```
 
-I've used the following to install `meson` and `ninja`.
+I've used the following commands to install `meson` and `ninja`.
 
 ```bash
 sudo apt update
@@ -54,7 +54,7 @@ sudo pip3 install meson # Pip3 is used because 'apt' has an outdated version of 
 sudo apt install ninja-build
 ```
 
-Building and installing this project is fairly easy and just like the standard version after installing the DPDK. It includes building the Packet Batch Common repository which requires [libyaml](https://github.com/yaml/libyaml) along with my custom-made the DPDK Command [project](https://github.com/gamemann/The-DPDK-Common). As long as you use the `--recursive` flag with `git`, it should retrieve all of the required submodules automatically located in the `modules/` directory. Otherwise, you will need to go into the Common repository and execute the `git submodule update --init` command. We use `make` to build and install the application.
+Building and installing this project is fairly easy and just like the standard version after installing the DPDK. It includes building the Packet Batch Common repository which requires [libyaml](https://github.com/yaml/libyaml) along with my custom-made the DPDK Common [project](https://github.com/gamemann/The-DPDK-Common). As long as you use the `--recursive` flag with `git`, it should retrieve all of the required submodules automatically located in the `modules/` directory. Otherwise, you will need to go into the Common repository and execute the `git submodule update --init` command. We use `make` to build and install the application.
 
 ```bash
 # Clone this repository along with its submodules.
