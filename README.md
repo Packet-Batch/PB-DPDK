@@ -18,6 +18,7 @@ With the above said, there are also additional command line usage for this speci
 --portmask => The port mask to use with the DPDK application.
 --queues => The amount of TX queues to setup per port (default and recommended is 1).
 --promisc => Whether to enable promiscuous mode on all enabled ports.
+--burstsize => The max TX buffer burst size (default 32).
 ```
 
 Examples may be found below.
