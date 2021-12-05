@@ -397,12 +397,12 @@ static int thread_hdl(void *temp)
             }
 
             // Flags.
-            tcph->tcp_flags |= (ti->seq.tcp.syn) ? (1 << 7) : 0;
+            tcph->tcp_flags |= (ti->seq.tcp.syn) ? (1 << 1) : 0;
             tcph->tcp_flags |= (ti->seq.tcp.ack) ? (1 << 4) : 0;
-            tcph->tcp_flags |= (ti->seq.tcp.psh) ? (1 << 5) : 0;
-            tcph->tcp_flags |= (ti->seq.tcp.fin) ? (1 << 8) : 0;
-            tcph->tcp_flags |= (ti->seq.tcp.rst) ? (1 << 6) : 0;
-            tcph->tcp_flags |= (ti->seq.tcp.urg) ? (1 << 3) : 0;
+            tcph->tcp_flags |= (ti->seq.tcp.psh) ? (1 << 3) : 0;
+            tcph->tcp_flags |= (ti->seq.tcp.fin) ? (1 << 0) : 0;
+            tcph->tcp_flags |= (ti->seq.tcp.rst) ? (1 << 2) : 0;
+            tcph->tcp_flags |= (ti->seq.tcp.urg) ? (1 << 6) : 0;
 
             // Check if we need to do length recalculation later on.
             if ((exact_pl_len > 0 || ti->seq.pl.is_static) || ti->seq.pl.min_len == ti->seq.pl.max_len)
