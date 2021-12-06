@@ -17,7 +17,7 @@ jobs:
         submodules: recursive
     # The following action also runs `sudo apt update` so we don't have to run that later on.
     - name: Deploy the DPDK (default)
-      uses: gamemann/DPDK-Deploy-Action@v1.2
+      uses: gamemann/DPDK-Deploy-Action@v1.3
     - name: Install LibYAML dependencies
       run: sudo apt install -y autoconf libtool
     - name: Make project
