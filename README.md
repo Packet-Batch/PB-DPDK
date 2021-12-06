@@ -1,4 +1,6 @@
 # Packet Batch (DPDK)
+[![Packet Batch DPDK Build Workflow](https://github.com/Packet-Batch/PB-DPDK/actions/workflows/build.yml/badge.svg)](https://github.com/Packet-Batch/PB-DPDK/actions/workflows/build.yml) [![Packet Batch DPDK Run Workflow](https://github.com/Packet-Batch/PB-DPDK/actions/workflows/run.yml/badge.svg)](https://github.com/Packet-Batch/PB-DPDK/actions/workflows/run.yml)
+
 ## Description
 This is a special version of Packet Batch that utilizes [the DPDK](https://dpdk.org), a kernel-bypass library. This does not use any form of Linux sockets.
 
