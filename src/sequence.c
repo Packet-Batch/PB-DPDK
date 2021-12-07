@@ -25,8 +25,6 @@ __u64 count[MAX_SEQUENCES];
 __u64 total_data[MAX_SEQUENCES];
 __u16 seq_cnt;
 
-rte_atomic16_t lcore_next_id;
-
 /**
  * Calculates the ICMP header's checksum.
  * 
@@ -103,8 +101,19 @@ void get_gw_mac_address(struct rte_ether_addr *dst_mac)
 **/
 static int thread_hdl(void *temp)
 {
+    // Retrieve the l-core ID.
+    unsigned lcore_id = rte_lcore_id();
+
     // Cast data as thread info.
-    struct thread_info *ti = (struct thread_info *)temp;
+    struct thread_info *ti = &(((struct thread_info *)temp)[lcore_id]);
+
+    // If we have no TX ports under this l-core, return because the l-core has nothing else to do.
+    if (ti->tx_ports_cnt < 1)
+    {
+        RTE_LOG(INFO, USER1, "L-core %u (%d) has nothing to do. Exiting.\n", lcore_id, ti->id);
+
+        return -1;
+    }
 
     // Let's parse some config values before creating the socket so we know what we're doing.
     __u8 protocol = IPPROTO_UDP;
@@ -124,18 +133,12 @@ static int thread_hdl(void *temp)
         return -1;
     }
 
-    // Retrieve the l-core ID.
-    unsigned lcore_id = rte_lcore_id();
-
     // Iteration variables.
     unsigned i;
     unsigned j;
 
     // The port ID.
     unsigned port_id;
-
-    // The specific TX port config for the l-core.
-    struct lcore_port_conf *qconf = &lcore_port_conf[lcore_id];
 
     // Pointer to TX buffer.
     struct rte_eth_dev_tx_buffer *buffer;
@@ -148,35 +151,8 @@ static int thread_hdl(void *temp)
     // For TX draining.
     const __u64 draintsc = (rte_get_tsc_hz() + US_PER_S - 1) / US_PER_S * BURST_TX_DRAIN_US;
 
-    // If we have no TX ports under this l-core, return because the l-core has nothing else to do.
-    if (qconf->num_tx_ports == 0)
-    {
-        RTE_LOG(INFO, USER1, "L-core %u has nothing to do with their config.\n", lcore_id);
-
-        // Check to see if we want to reuse another config.
-        if (!ti->cmd_dpdk.use_all_lcores)
-        {
-            return -1;
-        }
-
-        // Assign next config.
-        qconf = &lcore_port_conf[rte_atomic16_read(&lcore_next_id)];
-
-        // Increment the l-core next ID by one.
-        rte_atomic16_add(&lcore_next_id, 1);
-
-        // Check if we need to reset the next l-core ID..
-        if (lcore_port_conf[rte_atomic16_read(&lcore_next_id)].num_tx_ports < 1)
-        {
-            rte_atomic16_set(&lcore_next_id, 0);
-        }
-
-        // Log message.
-        RTE_LOG(INFO, USER1, "Assigning l-core %u to %u's port config.\n", lcore_id, rte_atomic16_read(&lcore_next_id));
-    }
-
     // Log message.
-    RTE_LOG(INFO, USER1, "Looping lcore %u with %u TX port(s) and %d TX queue(s) per port.\n", lcore_id, qconf->num_tx_ports, tx_queue_pp);
+    RTE_LOG(INFO, USER1, "Looping lcore %u with %u TX port(s).\n", lcore_id, ti->tx_ports_cnt);
 
     // Let's first start off by checking if the source MAC address is set within the config.
     if (ti->seq.eth.src_mac != NULL)
@@ -274,9 +250,9 @@ static int thread_hdl(void *temp)
     if (src_mac.addr_bytes[0] == 0 && src_mac.addr_bytes[1] == 0 && src_mac.addr_bytes[2] == 0 && src_mac.addr_bytes[3] == 0 && src_mac.addr_bytes[4] == 0 && src_mac.addr_bytes[5] == 0)
     {
         // Copy source MAC address of first port if we have only one per l-core.
-        if (qconf->num_tx_ports == 1)
+        if (ti->tx_ports_cnt == 1)
         {
-            port_id = qconf->tx_port_list[0];
+            port_id = ti->tx_ports[0];
             rte_ether_addr_copy(&ports[port_id].mac, &src_mac);
 
             if (src_mac.addr_bytes[0] == 0 && src_mac.addr_bytes[1] == 0 && src_mac.addr_bytes[2] == 0 && src_mac.addr_bytes[3] == 0 && src_mac.addr_bytes[4] == 0 && src_mac.addr_bytes[5] == 0)
@@ -553,9 +529,9 @@ static int thread_hdl(void *temp)
     // If we only have one port, assign port and buffer now.
     unsigned dst_port;
     
-    if (qconf->num_tx_ports == 1)
+    if (ti->tx_ports_cnt == 1)
     {
-        dst_port = ports[qconf->tx_port_list[0]].tx_port;
+        dst_port = ti->tx_ports[0];
         buffer = ports[dst_port].tx_buffer;
     }
 
@@ -583,19 +559,19 @@ static int thread_hdl(void *temp)
         if (unlikely(difftsc > draintsc))
         {
             // Loop through all TX ports.
-            for (i = 0; i < qconf->num_tx_ports; i++)
+            for (i = 0; i < ti->tx_ports_cnt; i++)
             {
                 // If we have more than one TX port, reassign port ID (dst_port) and buffer.
-                if (qconf->num_tx_ports > 1)
+                if (ti->tx_ports_cnt > 1)
                 {
-                    dst_port = ports[qconf->tx_port_list[i]].tx_port;
+                    dst_port = ti->tx_ports[i];
                     buffer = ports[dst_port].tx_buffer;
                 }
 
                 // Loop through all TX queues.
-                for (j = 0; j < tx_queue_pp; j++)
+                for (j = 0; j < ti->tx_queues_cnt[dst_port]; j++)
                 {
-                    rte_eth_tx_buffer_flush(dst_port, j, buffer);
+                    rte_eth_tx_buffer_flush(dst_port, ti->tx_queues[dst_port][j], buffer);
                 }
             }
 
@@ -784,13 +760,13 @@ static int thread_hdl(void *temp)
 #endif
 
         // Loop through each TX port on this l-core.
-        for (i = 0; i < qconf->num_tx_ports; i++)
+        for (i = 0; i < ti->tx_ports_cnt; i++)
         {
             // If we have more than one port on this l-core, we need to copy the source MAC address and retrieve the port ID.
-            if (qconf->num_tx_ports > 1)
+            if (ti->tx_ports_cnt > 1)
             {
                 // Retrieve the port ID.
-                dst_port = qconf->tx_port_list[i];
+                dst_port = ti->tx_ports[i];
 
                 // Retrieve buffer.
                 buffer = ports[dst_port].tx_buffer;
@@ -806,9 +782,9 @@ static int thread_hdl(void *temp)
             }
 
             // Loop through the TX queues and buffer the packet.
-            for (j = 0; j < tx_queue_pp; j++)
+            for (j = 0; j < ti->tx_queues_cnt[dst_port]; j++)
             {
-                rte_eth_tx_buffer(dst_port, j, buffer, pckt);
+                rte_eth_tx_buffer(dst_port, ti->tx_queues[dst_port][j], buffer, pckt);
             }
         }
 
@@ -853,6 +829,8 @@ static int thread_hdl(void *temp)
 #endif
     }
 
+    fprintf(stdout, "Stopping l-core %d.\n", lcore_id);
+
     return 0;
 }
 
@@ -877,28 +855,311 @@ void seq_send(const char *interface, struct sequence seq, __u16 seq_cnt2, struct
         return;
     }
 
+    unsigned int i;
+    unsigned int j;
+
     // Create new thread_info structure to pass to threads.
-    struct thread_info ti = {0};
+    struct thread_info ti[RTE_MAX_LCORE];
+    memset(&ti, 0, sizeof(struct thread_info) * RTE_MAX_LCORE);
 
-    // Assign correct values to thread info.
-    strcpy((char *)&ti.device, interface);
-    memcpy(&ti.seq, &seq, sizeof(struct sequence));
+    // Set each specific l-core information.
+    for (i = 0; i < nb_lcores; i++)
+    {
+        ti[i].id = i;
 
-    // Copy command line.
-    ti.cmd = cmd;
-    ti.cmd_dpdk = cmd_dpdk;
+        // Assign correct values to thread info.
+        strcpy((char *)&ti[i].device, interface);
+        memcpy(&ti[i].seq, &seq, sizeof(struct sequence));
 
-    // Create the threads needed.
-    int threads = (seq.threads > 0) ? seq.threads : get_nprocs();
+        // Copy command line.
+        ti[i].cmd = cmd;
+        ti[i].cmd_dpdk = cmd_dpdk;
 
-    // Reset count and total data for this sequence.
-    count[seq_cnt] = 0;
-    total_data[seq_cnt] = 0;
+        // Reset count and total data for this sequence.
+        count[seq_cnt] = 0;
+        total_data[seq_cnt] = 0;
 
-    ti.seq_cnt = seq_cnt2;
+        ti[i].seq_cnt = seq_cnt2;
+    }
+
+    // Map TX ports to l-cores and vice versa.
+    unsigned int next_id = 0;
+    unsigned int cnt = 0;
+
+    struct port_remains port_remains[RTE_MAX_ETHPORTS];
+    memset(&port_remains, 0, sizeof(struct port_remains) * RTE_MAX_ETHPORTS);
+
+#ifdef DEBUG
+    printf("\n\n");
+#endif
+
+    // If we have more ports than l-cores, we should loop through each port and assign.
+    if (nb_ports_available > nb_lcores)
+    {
+#ifdef DEBUG
+        printf("Found nb_ports_available (%d) (%d) > nb_lcores (%d)\n", nb_ports_available, nb_ports, nb_lcores);
+#endif
+
+        RTE_ETH_FOREACH_DEV(port_id)
+        {
+            // Skip disabled ports.
+            if ((enabled_port_mask & (1 << port_id)) < 1)
+            {
+#ifdef DEBUG
+                printf("Port %d disabled.\n", port_id);
+#endif
+
+                continue;
+            }
+
+            // Check if this l-core is disabled or not.
+            while (rte_lcore_is_enabled(next_id) == 0)
+            {
+                next_id++;
+#ifdef DEBUG
+                printf("l-core disabled. Incrementing to %d\n", next_id);
+#endif
+
+                // It shouldn't get here, but to be safe.
+                if (next_id >= RTE_MAX_LCORE)
+                {
+#ifdef DEBUG
+                    printf("next_id >= (RTE_MAX_LCORE - 1)\n");
+#endif
+
+                    if (!cmd_dpdk.use_all_lcores)
+                    {
+                        goto out;
+                    }
+
+                    next_id = 0;
+                    cnt = 0;
+                }
+            }
+
+            struct thread_info *ti_ind = &ti[next_id];
+
+            // Assign port ID and increment global count and TX port count.
+            ti_ind->tx_ports[ti_ind->tx_ports_cnt] = port_id;
+            ti_ind->tx_ports_cnt++;
+            cnt++;
+
+#ifdef DEBUG
+            printf("ti_ind->tx_ports[%d] = %d.\ncnt => %d.\n", ti_ind->tx_ports_cnt - 1, port_id, cnt);
+#endif
+
+            // Now assign the port remaining.
+            struct port_remains *pm = &port_remains[port_id];
+
+            pm->lcores[pm->lcores_cnt] = next_id;
+            pm->lcores_cnt++;
+
+            printf("pm->lcores[%d] = %d.\n", pm->lcores_cnt - 1, next_id);
+
+            // Check to see if we're above l-core count.
+            if (cnt >= nb_lcores)
+            {
+#ifdef DEBUG
+                printf("cnt >= nb_lcores.\n\n");
+#endif
+
+                // If we don't want to use all, break.
+                if (!cmd_dpdk.use_all_lcores)
+                {
+                    goto out;
+                }
+
+                // Reset l-core counters.
+                next_id = 0;
+                cnt = 0;
+            }
+        }
+    }
+    else
+    {
+#ifdef DEBUG
+        printf("Found nb_ports_available (%d) <= nb_lcores (%d)\n", nb_ports_available, nb_lcores);
+#endif
+
+        RTE_LCORE_FOREACH(lcore_id)
+        {
+            // Skip disabled l-cores.
+            if (rte_lcore_is_enabled(lcore_id) == 0)
+            {
+#ifdef DEBUG
+                printf("l-core %d disabled\n", lcore_id);
+#endif
+
+                continue;
+            }
+
+            // Check if the port is disabled or not.
+            while ((enabled_port_mask & (1 << next_id)) < 1)
+            {
+                next_id++;
+#ifdef DEBUG
+                printf("Port disabled. Incrementing to %d\n", next_id);
+#endif
+
+                // We shouldn't get here, but just in case.
+                if (next_id >= RTE_MAX_ETHPORTS)
+                {
+#ifdef DEBUG
+                    printf("next_id >= RTE_MAX_ETHPORTS\n");
+#endif
+
+                    if (!cmd_dpdk.use_all_lcores)
+                    {
+                        goto out;
+                    }
+
+                    next_id = 0;
+                    cnt = 0;
+                }
+            }
+
+            struct thread_info *ti_ind = &ti[lcore_id];
+
+            ti_ind->tx_ports[ti_ind->tx_ports_cnt] = next_id;
+            ti_ind->tx_ports_cnt++;
+            cnt++;
+
+#ifdef DEBUG
+            printf("ti_ind->tx_ports[%d] = %d.\ncnt => %d.\n", ti_ind->tx_ports_cnt - 1, next_id, cnt);
+#endif
+
+            // Now assign the port remaining.
+            struct port_remains *pm = &port_remains[next_id];
+            
+            pm->lcores[pm->lcores_cnt] = lcore_id;
+            pm->lcores_cnt++;
+
+#ifdef DEBUG
+            printf("pm->lcores[%d] = %d.\n", pm->lcores_cnt - 1, lcore_id);
+#endif
+
+            // Check to see if we're above port count.
+            if (cnt >= nb_ports_available)
+            {
+#ifdef DEBUG
+                printf("cnt >= nb_ports_available.\n\n");
+#endif
+
+                // If we don't want to use all l-cores, break now.
+                if (!cmd_dpdk.use_all_lcores)
+                {
+                    goto out;
+                }
+
+                // Otherwise, just reset the port counters.
+                next_id = 0;
+                cnt = 0;
+            }
+        }
+    }
+
+    out:;
+
+    // Now we must loop through all the port remains and divide the queue counts if necessary.
+    unsigned int idx = 0;
+
+    RTE_ETH_FOREACH_DEV(port_id)
+    {
+        struct port_remains *pm = &port_remains[port_id];
+
+        // Make sure we have a l-core.
+        if (pm->lcores_cnt < 1)
+        {
+#ifdef DEBUG
+            printf("port l-core count (%d) < 1\n", port_id);
+#endif
+
+            continue;
+        }
+
+#ifdef DEBUG
+        printf("Found l-core count of => %d.\n", pm->lcores_cnt);
+#endif
+
+        // Perform round robin.
+        for (i = 0; i < tx_queue_pp; i++)
+        {
+#ifdef DEBUG
+            printf("Trying l-core iD => %d.\n", pm->lcores[idx]);
+#endif
+
+            struct thread_info *ti_ind = &ti[pm->lcores[idx]];
+
+            ti_ind->tx_queues[port_id][ti_ind->tx_queues_cnt[port_id]] = i;
+            ti_ind->tx_queues_cnt[port_id]++;
+            idx++;
+
+#ifdef DEBUG
+            printf("ti_ind->tx_queues[%d] = %d\nidx = %d.\n", ti_ind->tx_queues_cnt[port_id] - 1, i, idx);
+#endif
+            
+            // If our index exceeds l-core count, reset.
+            if (idx >= (pm->lcores_cnt))
+            {
+#ifdef DEBUG
+                printf("idx >= (pm->lcores_cnt - 1)\n\n");
+#endif
+
+                idx = 0;
+            }
+        }
+    }
+
+    // Debug
+    if (cmd.verbose)
+    {
+        printf("\n\n\n");
+        RTE_LCORE_FOREACH(lcore_id)
+        {
+            // Skip disabled l-cores.
+            if (rte_lcore_is_enabled(lcore_id) == 0)
+            {
+                continue;
+            }
+
+            struct thread_info *ti_ind = &ti[lcore_id];
+
+            // Print verbose information.
+            printf("L-Core #%d Info\n", lcore_id);
+            printf("Port Cnt => %d.\n", ti_ind->tx_ports_cnt);
+            printf("----------------------------------------\n\n");
+
+            // If we have more than one, enable this l-core on our side!
+            if (ti_ind->tx_ports_cnt > 0)
+            {
+                printf("Ports/Queues:\n");
+                
+                for (i = 0; i < ti_ind->tx_ports_cnt; i++)
+                {
+                    printf("-- ID: %d\n", ti_ind->tx_ports[i]);
+
+                    printf("\t-- ");
+
+                    for (j = 0; j < ti_ind->tx_queues_cnt[ti_ind->tx_ports[i]]; j++)
+                    {
+                        printf("%d", ti_ind->tx_queues[ti_ind->tx_ports[i]][j]);
+
+                        if (j != (ti_ind->tx_queues_cnt[ti_ind->tx_ports[i]] - 1))
+                        {
+                            printf(", ");
+                        }
+                    }
+                }
+
+                // Print verbose information.
+                printf("\n\n----------------------------------------");
+                printf("\n\n");
+            }
+        }
+    }
 
     // We'll want to execute 'thread_hdl' on each l-core and wait for them to finish the job.
-    rte_eal_mp_remote_launch(thread_hdl, (void *)&ti, CALL_MAIN);
+    rte_eal_mp_remote_launch(thread_hdl, &ti, CALL_MAIN); 
 
     RTE_LCORE_FOREACH_WORKER(lcore_id)
     {

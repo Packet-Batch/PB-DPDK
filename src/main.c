@@ -181,6 +181,11 @@ int main(int argc, char **argv)
         fprintf(stdout, "\nStarting the DPDK application...\n\n");
     }
 
+    // Retrieve the amount of l-cores and check.
+    ret = dpdkc_get_available_lcore_count();
+
+    dpdkc_check_ret(&ret);
+
     // Retrieve the amount of ethernet ports and check.
     ret = dpdkc_get_nb_ports();
 
