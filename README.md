@@ -1,4 +1,6 @@
 # Packet Batch (DPDK)
+[![Packet Batch DPDK Build Workflow](https://github.com/Packet-Batch/PB-DPDK/actions/workflows/build.yml/badge.svg)](https://github.com/Packet-Batch/PB-DPDK/actions/workflows/build.yml) [![Packet Batch DPDK Run Workflow](https://github.com/Packet-Batch/PB-DPDK/actions/workflows/run.yml/badge.svg)](https://github.com/Packet-Batch/PB-DPDK/actions/workflows/run.yml)
+
 ## Description
 This is a special version of Packet Batch that utilizes [the DPDK](https://dpdk.org), a kernel-bypass library. This does not use any form of Linux sockets.
 
@@ -72,6 +74,9 @@ cd PB-DPDK/
 sudo make
 sudo make install
 ```
+
+### Installation Video!
+[![Click here to watch!](https://g.gflclan.com/linux-laptop-bigmode-02-02-03.png)](https://www.youtube.com/watch?v=REopw-KzaK0)
 
 After installing, the executable is copied to the `/usr/bin/` directory which should be included in your `$PATH`. Therefore, you may use the application globally (in any directory).
 

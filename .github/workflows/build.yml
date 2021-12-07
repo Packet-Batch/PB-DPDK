@@ -1,0 +1,31 @@
+name: Build
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  workflow_call:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: recursive
+    # The following action also runs `sudo apt update` so we don't have to run that later on.
+    - name: Deploy the DPDK (default)
+      uses: gamemann/DPDK-Deploy-Action@v1.5
+    - name: Install LibYAML dependencies
+      run: sudo apt install -y autoconf libtool
+    - name: Make project
+      run: sudo make
+    - name: Install project
+      run: sudo make install
+    - name: Store build artifacts
+      uses: actions/upload-artifact@master
+      with:
+        name: build-output
+        path: build/pcktbatch
