@@ -71,7 +71,8 @@ int main(int argc, char **argv)
             "--portmask => The port mask to use with the DPDK application.\n" \
             "--queues => The amount of TX queues to setup per port (default and recommended is 1).\n" \
             "--promisc => Whether to enable promiscuous mode on all enabled ports.\n" \
-            "--burstsize => The max TX buffer burst size (default 32).\n");
+            "--burstsize => The max TX buffer burst size (default 32).\n" \
+            "--useall => Load balances all ports and TX queues to l-cores in round-robin fashion and vice versa.\n");
 
         return EXIT_SUCCESS;
     }
