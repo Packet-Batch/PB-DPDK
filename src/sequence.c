@@ -13,6 +13,7 @@
 #include <rte_udp.h>
 #include <rte_tcp.h>
 #include <rte_icmp.h>
+#include <rte_atomic.h>
 
 #include <utils.h>
 #include <cmd_line.h>
@@ -23,6 +24,8 @@
 __u64 count[MAX_SEQUENCES];
 __u64 total_data[MAX_SEQUENCES];
 __u16 seq_cnt;
+
+rte_atomic16_t lcore_next_id;
 
 /**
  * Calculates the ICMP header's checksum.
@@ -148,9 +151,28 @@ static int thread_hdl(void *temp)
     // If we have no TX ports under this l-core, return because the l-core has nothing else to do.
     if (qconf->num_tx_ports == 0)
     {
-        RTE_LOG(INFO, USER1, "lcore %u has nothing to do.\n", lcore_id);
+        RTE_LOG(INFO, USER1, "L-core %u has nothing to do with their config.\n", lcore_id);
 
-        return -1;
+        // Check to see if we want to reuse another config.
+        if (!ti->cmd_dpdk.use_all_lcores)
+        {
+            return -1;
+        }
+
+        // Assign next config.
+        qconf = &lcore_port_conf[rte_atomic16_read(&lcore_next_id)];
+
+        // Increment the l-core next ID by one.
+        rte_atomic16_add(&lcore_next_id, 1);
+
+        // Check if we need to reset the next l-core ID..
+        if (lcore_port_conf[rte_atomic16_read(&lcore_next_id)].num_tx_ports < 1)
+        {
+            rte_atomic16_set(&lcore_next_id, 0);
+        }
+
+        // Log message.
+        RTE_LOG(INFO, USER1, "Assigning l-core %u to %u's port config.\n", lcore_id, rte_atomic16_read(&lcore_next_id));
     }
 
     // Log message.

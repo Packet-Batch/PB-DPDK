@@ -12,6 +12,7 @@ static const struct option long_opts[] =
     {"queues", required_argument, NULL, 2},
     {"promisc", no_argument, NULL, 3},
     {"burstsize", required_argument, NULL, 4},
+    {"useall", no_argument, NULL, 5},
     {NULL, 0, NULL, 0}
 };
 
@@ -70,6 +71,11 @@ void parse_cmd_line_dpdk(struct cmd_line_dpdk *cmd_dpdk, int argc, char **argv)
                     packet_burst_size = MAX_PCKT_BURST_DEFAULT;
                 }
                 
+                break;
+
+            case 5:
+                cmd_dpdk->use_all_lcores = 1;
+
                 break;
         }
     }
