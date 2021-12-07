@@ -19,6 +19,7 @@ With the above said, there are also additional command line usage for this speci
 --queues => The amount of TX queues to setup per port (default and recommended is 1).
 --promisc => Whether to enable promiscuous mode on all enabled ports.
 --burstsize => The max TX buffer burst size (default 32).
+--useall => Load balances all ports and TX queues to l-cores in round-robin fashion and vice versa.
 ```
 
 Examples may be found below.
