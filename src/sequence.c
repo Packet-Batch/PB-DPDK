@@ -603,6 +603,7 @@ static int thread_hdl(void *temp)
             prevtsc = curtsc;
         }
 
+#ifndef MAX_PERF
         // Increase count and check.
         if (ti->seq.count > 0 || ti->seq.track_count)
         {
@@ -619,11 +620,13 @@ static int thread_hdl(void *temp)
         {
             break;
         }
+#endif
+
+#ifndef MAX_STATIC_PERF
+        /* Assign random IP header values if need to be. */
 
         // Recalculate the seed based off of count and time.
         seed = time(NULL) ^ count[ti->seq_cnt];
-
-        /* Assign random IP header values if need to be. */
 
         // Check for random TTL.
         if (ti->seq.ip.min_ttl != ti->seq.ip.max_ttl)
@@ -778,6 +781,7 @@ static int thread_hdl(void *temp)
             pckt->data_len = pckt_len;
             pckt->pkt_len = pckt_len;
         }
+#endif
 
         // Loop through each TX port on this l-core.
         for (i = 0; i < qconf->num_tx_ports; i++)
@@ -808,6 +812,7 @@ static int thread_hdl(void *temp)
             }
         }
 
+#ifndef MAX_PERF
         // Check if we want to send verbose output or not.
         if (ti->cmd.verbose)
         {
@@ -845,6 +850,7 @@ static int thread_hdl(void *temp)
         {
             usleep(ti->seq.delay);
         }
+#endif
     }
 
     return 0;
