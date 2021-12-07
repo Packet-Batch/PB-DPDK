@@ -47,12 +47,12 @@ void parse_cmd_line_dpdk(struct cmd_line_dpdk *cmd_dpdk, int argc, char **argv)
             case 2:
                 ret = dpdkc_parse_arg_queues(optarg, 0, 1);
                 
-                if (rx_queue_pp == 0)
+                if (tx_queue_pp == 0)
                 {
                     rte_exit(EXIT_FAILURE, "Invalid queue number argument with -q or --queues.\n");
                 }
 
-                cmd_dpdk->queues = rx_queue_pp;
+                cmd_dpdk->queues = tx_queue_pp;
 
                 break;
 

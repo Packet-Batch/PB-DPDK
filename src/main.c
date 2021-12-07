@@ -197,7 +197,7 @@ int main(int argc, char **argv)
     dpdkc_check_ret(&ret);
 
     // Initialize each port.
-    ret = dpdkc_ports_queues_init(cmd_dpdk.promisc, 0, cmd_dpdk.queues);
+    ret = dpdkc_ports_queues_init(cmd_dpdk.promisc, 0, tx_queue_pp);
 
     // Check for error and fail with it if there is.
     dpdkc_check_ret(&ret);
