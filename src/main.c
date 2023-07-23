@@ -133,34 +133,7 @@ int main(int argc, char **argv)
     // Check for list option. If so, print helpful information for configuration.
     if (cmd.list)
     {
-        fprintf(stdout, "Found %d sequences.\n", seq_cnt);
-
-        fprintf(stdout, "Got interface => %s.\n", cfg.interface);
-
-        fprintf(stdout, "Sequences:\n\n--------------------------\n");
-
-        for (int i = 0; i < seq_cnt; i++)
-        {
-            fprintf(stdout, "Sequence #%d:\n\n", i);
-
-            fprintf(stdout, "Includes =>\n");
-
-            if (cfg.seq[i].include_count > 0)
-            {
-                for (int j = 0; j < cfg.seq[i].include_count; j++)
-                {
-                    fprintf(stdout, "\t- %s\n", cfg.seq[i].includes[j]);
-                }
-            }
-
-            fprintf(stdout, "Block => %s\n", (cfg.seq[i].block) ? "True" : "False");
-            fprintf(stdout, "Count => %llu\n", cfg.seq[i].count);
-            fprintf(stdout, "Time => %llu\n", cfg.seq[i].time);
-            fprintf(stdout, "Delay => %llu\n", cfg.seq[i].delay);
-            fprintf(stdout, "Threads => %u\n", cfg.seq[i].threads);
-
-            fprintf(stdout, "\n\n");
-        }
+        print_config(&cfg, seq_cnt);
 
         return EXIT_SUCCESS;
     }
