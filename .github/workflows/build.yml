@@ -20,9 +20,17 @@ jobs:
       uses: gamemann/DPDK-Deploy-Action@v1.5
     - name: Install LibYAML dependencies
       run: sudo apt install -y autoconf libtool
-    - name: Make project
-      run: sudo make
-    - name: Install project
+    - name: Build Common LibYAML
+      run: sudo make -C modules/common libyaml
+    - name: Build Common Main
+      run: make -C modules/common
+    - name: Install Common
+      run: sudo make -C modules/common install
+    - name: Build the DPDK Common
+      run: make dpdk_common
+    - name: Build main
+      run: make
+    - name: Install main
       run: sudo make install
     - name: Store build artifacts
       uses: actions/upload-artifact@master

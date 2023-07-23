@@ -1,0 +1,45 @@
+#!/bin/bash
+THREADS=1
+
+# Check for core numbers.
+if [ -n "$1" ]; then
+    if [ "$1" -eq 0 ]; then
+        THREADS=$(nproc)
+    elif [ "$1" -gt 0 ]; then
+        THREADS=$1
+    fi
+fi
+
+echo "Building Packet Batch (DPDK) using $THREADS threads..."
+
+# First, we want to build our common objects which includes LibYAML. Read the PB-Common directory for more information.
+echo "Building Common Repository..."
+
+echo "Building LibYAML..."
+sudo make -j $THREADS -C modules/common libyaml
+echo "Done..."
+
+echo "Building Common Main..."
+make -j $THREADS -C modules/common
+echo "Done..."
+
+echo "Installing Common..."
+sudo make -j $THREADS -C modules/common install
+echo "Done..."
+
+echo "Building DPDK Version..."
+
+# Next, build the DPDK common objects.
+echo "Building the DPDK Common..."
+make -j $THREADS dpdk_common
+echo "Done..."
+
+# Now build our primary objects and executables.
+echo "Building Main..."
+make -j $THREADS
+echo "Done..."
+
+# Finally, install our binary. This must be ran by root or with sudo.
+echo "Installing Main..."
+sudo make -j $THREADS install
+echo "Done..."

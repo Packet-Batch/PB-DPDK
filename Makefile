@@ -62,8 +62,7 @@ endif
 endif
 
 # Chains.
-all: mk_build common dpdk_common sequence cmd_line main
-nocommon: mk_build dpdk_common sequence cmd_line main
+all: mk_build sequence cmd_line main
 
 # Creates the build directory if it doesn't already exist.
 mk_build:
@@ -72,11 +71,6 @@ mk_build:
 # Build The DPDK Common objects.
 dpdk_common:
 	$(MAKE) -C $(DPDK_COMMON_DIR)
-
-# Build and install the Packet Batch common submodule (this includes libyaml).
-common:
-	$(MAKE) -C $(COMMON_DIR)/
-	$(MAKE) -C $(COMMON_DIR)/ install
 
 # The sequence file.
 sequence: mk_build
@@ -87,7 +81,7 @@ cmd_line: mk_build
 	$(CC) -I $(DPDK_COMMON_SRC_DIR) $(OBJ_FLAGS) -c -o $(BUILD_DIR)/$(CMD_LINE_OUT) $(SRC_DIR)/$(CMD_LINE_SRC)
 
 # The main program.
-main: mk_build $(COMMON_OBJS)
+main: mk_build sequence cmd_line $(COMMON_OBJS) $(DPDK_COMMON_OBJS)
 	$(CC) -I $(COMMON_SRC_DIR) -I $(DPDK_COMMON_SRC_DIR) $(CFLAGS) $(MAIN_FLAGS) -o $(BUILD_DIR)/$(MAIN_OUT) $(COMMON_OBJS) $(DPDK_COMMON_OBJS) $(LDFLAGS_STATIC) $(MAIN_OBJS) $(SRC_DIR)/$(MAIN_SRC)
 
 # Cleanup (remove build files).

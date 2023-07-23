@@ -40,6 +40,10 @@ Before building this project, you must install the DPDK and have compatible hard
 The following commands should allow for an easy DPDK setup assuming you want to use the default configuration. You will need `meson` and `ninja`.
 
 ```bash
+# Install libnuma-dev if you don't have it already.
+apt install -y libnuma-dev
+
+# Clone and build the DPDK.
 git clone https://github.com/DPDK/dpdk.git
 cd dpdk/
 meson build
@@ -70,9 +74,14 @@ sudo apt install build-essential clang autoconf libtool
 # Change the current working directory to PB-DPDK/.
 cd PB-DPDK/
 
-# Make and install (must be ran as root via sudo or root user itself).
-sudo make
-sudo make install
+# Execute ./build.sh file to build and install dependencies and main project which requires sudo privileges.
+# WARNING - If you don't have sudo available on your system, please look at the ./build.sh file and execute make commands as root in order.
+# NOTE - You may also look at the .github/workflows/build.yml.
+# NOTE - The first argument represents the amount of threads to use with make. 0 uses the amount of available threads on the system and supplying no argument uses 1 thread.
+./build.sh 0
+
+# You may use the following to clean the build. You must run this as root or sudo because of the Common's LibYAML clean.
+sudo make clean
 ```
 
 ### Installation Video!
