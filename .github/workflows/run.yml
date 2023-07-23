@@ -18,7 +18,7 @@ jobs:
       with:
         name: build-output
     - name: Deploy the DPDK (default)
-      uses: gamemann/DPDK-Deploy-Action@v1.5
+      uses: gamemann/DPDK-Deploy-Action@v1.6
     - name: List files
       run: ls -la
     - name: Add execute permissions to executable file
