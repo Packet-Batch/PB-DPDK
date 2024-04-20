@@ -13,7 +13,6 @@
 
 ### Disclaimer
 I do **NOT** support using these tools maliciously or as a part of a targeted attack. I've made these tools to perform penetration tests against my own firewalls along with occasionally debugging network issues such as packets not arriving to their destination correctly.
-This special version should be faster than all other versions of Packet Batch due to the DPDK. I was able to generate ~410K packets per second on one single l-core/port on my home server while the AF_XDP Packet Batch version generated ~1.2 million packets per second on four cores/threads. At this rate, if I utilized all four cores, the DPDK version would be able to push nearly 2 million packets per second.
 
 ## The DPDK
 This is a special version that utilizes [The DPDK](https://www.dpdk.org/) to send network packets. The DPDK is a set of libraries for implementing user-space drivers for Network Interface Controllers (NIC). The DPDK provides you with a framework and common API for high-speed networking applications and allows for achieving a fast packet processing pipeline. As a result, this version of Packet Batch performs better than the standard version. However, it will only work more efficiently with specific hardware.
